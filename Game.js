@@ -3,6 +3,12 @@ const ctx = canvas.getContext("2d");
 let currentKey = new Map();
 let mode = "splash"
 let navKeys = new Map();
+let mouseX = 10;
+let mouseY = 10;
+let backPackMap = [
+    0,0,0,0,0,0,0,0,0,0
+]
+let keyboardEnabled = true;
 class Splash {
     constructor() {
         this.arrowLeft = new Image();
@@ -118,6 +124,9 @@ class Player {
         if (this.direction === "back") {
             this.image.src = "./Assets/astro.png"
         }
+        if (this.direction === "front") {
+            this.image.src = "./Assets/astroFront.png"
+        }
     }
 }
 class Enemy {
@@ -186,7 +195,7 @@ class ToolBar {
     constructor() {
         this.x = 10
         this.y = 500
-        this.size = 30;
+        this.size = 35;
         this.barLength = 8
     }
 
@@ -198,33 +207,70 @@ class ToolBar {
         for (let i = 0; i < this.barLength; i++) {
             ctx.strokeRect(this.x + i * 45,this.y,this.size,this.size,)
         }
+        for (let i = 0; i < items.length; i++) {
+            ctx.drawImage(items[i].image,this.x+i*45,this.y)
+        }
     }
 }
 class BackPack {
     constructor () {
         this.visable = false;
         this.w = 800
-        this.h = 550;
+        this.h = 350;
+        this.scale = 60
     }
     draw() {
         if (this.visable === true) {
             log("RUNNING")
             ctx.fillStyle = "white"
-            ctx.globalAlpha = 0.9;
-            ctx.fillRect(canvas.width/2 - this.w/2,canvas.height/2 - this.h/2,this.w,this.h)
-            ctx.globalAlpha = 1.0;
+            ctx.globalAlpha = 0.7;
+            ctx.fillRect(canvas.width/ 2 - this.w/2,canvas.height/2 - this.h/2,this.w,this.h)
+            ctx.strokeStyle = "black"
+            ctx.lineWidth = 3
+            for (let w = 0; w < 10; w++) {
+                    ctx.strokeRect(canvas.width/2-300 + w*this.scale,canvas.height/2-150,50,50)
+                    for (let h = 0; h < 4; h++) {
+                        ctx.strokeRect(canvas.width/2-300 + w*this.scale,canvas.height/2-150 + h *80,50,50)
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+            for (let i = 0; i < items.length; i++) {
+                ctx.drawImage(items[i].image,canvas.width/2-295 + i *this.scale,canvas.height/2-145,32*1.2,32*1.2)
+            }
         }
     }
 }
-class Items {
+class Lazer {
     constructor() {
-        this.moon = new Image();
-        this.moon.src = "./Assets/Planet.png"
-        this.spaceShip = new Image();
-        this.spaceShip.src = "Assets/spaceShip.png";
+        this.x = 10;
+        this.y = 10;
+    }
+    draw() {
+        ctx.fillStyle = "white"      
+        ctx.beginPath();
+        ctx.arc(player.bounds.x+40, player.bounds.y+35, 50, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.fillRect(player.bounds.x+25,mouseY,10,10)
+        mouseY -= 1;
     }
 }
-let item = new Items();
+class Item {
+    constructor(src,x,y,scale) {
+        this.bounds = new Rect(x,y,32*scale,32*scale);
+        this.image = new Image();
+        this.image.src = src;
+        this.scale = scale
+    }
+    draw() {
+        ctx.drawImage(this.image,this.bounds.x,this.bounds.y,this.bounds.w,this.bounds.h);
+    } 
+}
+function mouse() {
+    window.addEventListener("click", (e) => {
+        mouseY = e.clientY;
+        mouseX = e.clientX;
+    })
+}
 function test_rects() {
 	let rect = new Rect(30,25,20,20)
 	console.assert(rect.contains(new Point(0,0))==false)
@@ -242,11 +288,8 @@ function test_rects() {
 	console.assert(rect.intersects(rect2)==true)
 	console.assert(rect2.intersects(rect)==true)
     if (rect.intersects(rect2) || rect2.intersects(rect)) {
-        log("WORKS")
     }
-	console.log("TESTS PASS")
 }
-test_rects();
 function log(s) {
     console.log(s)
 
@@ -255,15 +298,17 @@ function fillRect(x,y,w,h,color) {
     ctx.fillStyle = color;
     ctx.fillRect(x,y,w,h);
 }
-let keyboardEnabled = true;
+//ITEMS
+let moon = new Item("./Assets/Planet.png",10,10,5);
+let items = [moon];
+
+let lazer = new Lazer();
 let toolbar = new ToolBar()
 let heart = new Heart();
 let enemy = new Enemy();
 let player = new Player();
 let splash = new Splash();
 let backpack = new BackPack();
-
-
 function keyboardLoop() {
     if (keyboardEnabled) {}
 
@@ -276,7 +321,7 @@ function keyboardLoop() {
     if (mode === "game") {
         if (keyboardEnabled) {
             if (currentKey.get("w") === true) {
-                player.direction = "forward"
+                player.direction = "front"
                 player.animate();
                 player.bounds.y -= player.speed
               } 
@@ -328,6 +373,7 @@ function clearScreen() {
 function loop() {
     clearScreen();
     keyboardLoop();
+    mouse();
     if (mode === "game") {
         player.colison();
         heart.colison();
@@ -338,6 +384,7 @@ function loop() {
         heart.draw();
         toolbar.draw();
         backpack.draw();
+        lazer.draw();
     }
     if (mode === "splash") {
         splash.draw();
@@ -354,6 +401,7 @@ function init() {
         ResizeCanvas();
     
     })
+    test_rects();
     keyboardInit();
     loop();
 }
